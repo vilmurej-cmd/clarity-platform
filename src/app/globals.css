@@ -1,26 +1,97 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --clarity-blue: #3B82F6;
+  --clarity-blue-light: #60A5FA;
+  --clarity-blue-dark: #2563EB;
+  --clarity-teal: #14B8A6;
+  --clarity-teal-light: #5EEAD4;
+  --clarity-amber: #F59E0B;
+  --clarity-rose: #FB7185;
+  --clarity-green: #10B981;
+  --bg-primary: #FAFBFC;
+  --bg-card: #FFFFFF;
+  --bg-warm: #FFF7ED;
+  --bg-blue-soft: #EFF6FF;
+  --bg-teal-soft: #F0FDFA;
+  --text-primary: #1E293B;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --border-light: #E2E8F0;
+  --border-blue: rgba(59, 130, 246, 0.2);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  body {
+    line-height: 1.75;
+    font-size: 16px;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  h1, h2, h3, h4 {
+    font-family: var(--font-playfair), Georgia, serif;
+    line-height: 1.3;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .font-serif {
+    font-family: var(--font-playfair), Georgia, serif;
+  }
+  .font-sans {
+    font-family: var(--font-jakarta), system-ui, sans-serif;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gentlePulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-gentle-pulse {
+  animation: gentlePulse 3s ease-in-out infinite;
+}
+
+@media print {
+  nav, footer, .disclaimer-banner, .no-print { display: none !important; }
+  body { font-size: 14px; line-height: 1.6; color: #000; background: #fff; }
+  main { padding: 0; }
+  h1, h2, h3 { page-break-after: avoid; }
+  .print-break { page-break-before: always; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: high) {
+  :root {
+    --text-primary: #000000;
+    --text-secondary: #1a1a1a;
+    --text-muted: #333333;
+    --border-light: #666666;
+  }
 }
