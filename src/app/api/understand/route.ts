@@ -20,12 +20,12 @@ export async function POST(request: NextRequest) {
     }
 
     // If no API key, return the demo report
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ success: true, report: demoReport });
     }
 
-    const Anthropic = (await import("@anthropic-ai/sdk")).default;
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const OpenAI = (await import("openai")).default;
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     // Build user message with optional context
     let userMessage = `Patient description: "${description}"`;
@@ -96,23 +96,25 @@ Respond with ONLY valid JSON (no markdown, no backticks):
   }
 }`;
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o",
       max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
     });
 
-    // Extract text content from Claude's response
-    const textBlock = message.content.find((block) => block.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
+    // Extract text content from OpenAI's response
+    const responseText = completion.choices[0]?.message?.content || "";
+    if (!responseText) {
       return NextResponse.json(
         { success: false, error: "No response from AI." },
         { status: 500 }
       );
     }
 
-    const report = JSON.parse(textBlock.text);
+    const report = JSON.parse(responseText);
 
     return NextResponse.json({ success: true, report });
   } catch (error) {

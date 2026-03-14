@@ -1,4 +1,4 @@
-// Demo report data — shown when no ANTHROPIC_API_KEY is configured.
+// Demo report data — shown when no OPENAI_API_KEY is configured.
 // This lets prospects experience the full platform without burning API credits.
 
 export const demoReport = {

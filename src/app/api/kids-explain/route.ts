@@ -17,12 +17,12 @@ export async function POST(request: NextRequest) {
     const age = validAgeRanges.includes(ageRange) ? ageRange : "6-8";
 
     // If no API key, return the demo kids report
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ success: true, report: demoKidsReport });
     }
 
-    const Anthropic = (await import("@anthropic-ai/sdk")).default;
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const OpenAI = (await import("openai")).default;
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     let userMessage = `Diagnosis: "${diagnosis}"\nChild's age range: ${age}`;
     if (parentDescription) {
@@ -67,22 +67,24 @@ Respond with ONLY valid JSON (no markdown, no backticks):
   ]
 }`;
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o",
       max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
     });
 
-    const textBlock = message.content.find((block) => block.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
+    const responseText = completion.choices[0]?.message?.content || "";
+    if (!responseText) {
       return NextResponse.json(
         { success: false, error: "No response from AI." },
         { status: 500 }
       );
     }
 
-    const report = JSON.parse(textBlock.text);
+    const report = JSON.parse(responseText);
 
     return NextResponse.json({ success: true, report });
   } catch (error) {
