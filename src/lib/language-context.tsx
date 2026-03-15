@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { getCached, setCache } from './translation-cache';
+import enTranslations from '@/translations/en.json';
 
 export interface Language {
   code: string;
@@ -130,7 +131,7 @@ function getNestedValue(obj: TranslationData, key: string): string | undefined {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(LANGUAGES[0]);
-  const [translations, setTranslations] = useState<TranslationData>({});
+  const [translations, setTranslations] = useState<TranslationData>(enTranslations as TranslationData);
   const [recentLanguages, setRecentLanguages] = useState<Language[]>([]);
 
   // Load preferred language from localStorage
