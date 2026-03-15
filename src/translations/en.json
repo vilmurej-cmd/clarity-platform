@@ -1,0 +1,10 @@
+{
+  "nav": { "home": "Home", "understand": "Understand Your Diagnosis", "howItWorks": "How It Works", "about": "About", "resources": "Resources", "kids": "For Children", "privacy": "Privacy", "terms": "Terms" },
+  "common": { "search": "Search", "submit": "Help Me Understand", "loading": "Creating your report...", "error": "Something went wrong", "tryAgain": "Try again", "learnMore": "Learn more", "share": "Share CLARITY", "save": "Save Report", "download": "Download", "print": "Print Questions", "close": "Close", "back": "Back" },
+  "hero": { "title": "Understanding your health, in your words.", "subtitle": "CLARITY translates medical information into language you can actually understand. Free. Private. Always.", "cta": "Start Understanding" },
+  "trust": { "private": "Completely Private", "privateDesc": "Nothing you share is stored. Your information stays on your device.", "forYou": "Written for You", "forYouDesc": "Complex medical research translated into words you understand.", "notReplacement": "Made with Care", "notReplacementDesc": "Built to help you prepare for conversations with your doctor, not replace them." },
+  "report": { "title": "Your Clarity Report", "understanding": "Understanding Your Diagnosis", "treatments": "Treatment Options", "questions": "Questions for Your Doctor", "support": "Finding Support", "livingWith": "Living With It", "printQuestions": "Print My Questions", "saveReport": "Save This Report", "startOver": "Start New Report" },
+  "disclaimer": "CLARITY is an educational tool. It does not provide medical advice, diagnosis, or treatment. Always consult with qualified healthcare providers.",
+  "footer": { "mission": "Every patient deserves to understand their fight.", "company": "A Vilmure Ventures Company", "builtWith": "Built with care by humans and AI" },
+  "language": { "searchLanguages": "Search languages...", "recentlyUsed": "Recently Used", "popular": "Popular Languages", "allLanguages": "All Languages" }
+}
