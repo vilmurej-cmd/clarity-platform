@@ -124,7 +124,9 @@ export default function ResourcesPage() {
             {majorOrgs.map((org) => (
               <a
                 key={org.name}
-                href="#"
+                href={`https://${org.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-blue-200"
               >
                 <div className="flex items-start justify-between">
@@ -158,7 +160,9 @@ export default function ResourcesPage() {
             {conditionOrgs.map((org) => (
               <a
                 key={org.name}
-                href="#"
+                href={`https://${org.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md hover:border-blue-200"
               >
                 <div className="flex-1">
@@ -227,7 +231,9 @@ export default function ResourcesPage() {
               </ul>
             </div>
             <a
-              href="#"
+              href="https://clinicaltrials.gov"
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#14B8A6] hover:text-teal-700 transition-colors"
             >
               Visit ClinicalTrials.gov
