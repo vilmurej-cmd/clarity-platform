@@ -243,6 +243,25 @@ export default function KidsPage() {
           </p>
         </div>
 
+        {/* Storybook CTA */}
+        <Link
+          href="/kids/storybook"
+          className="block mb-8 rounded-3xl bg-gradient-to-r from-amber-50 via-orange-50 to-pink-50 border-2 border-orange-200 p-6 hover:shadow-lg hover:scale-[1.01] transition-all group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="text-4xl">📖</div>
+            <div className="flex-1">
+              <p className="font-kids text-lg font-extrabold text-slate-800 group-hover:text-orange-600 transition-colors">
+                Create Your Child&apos;s Storybook ✨
+              </p>
+              <p className="font-kids text-sm text-slate-500 mt-1">
+                A personalized adventure where YOUR child is the hero — with their name, their favorites, and their condition turned into a superpower.
+              </p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-orange-400 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
+
         {/* Mascot */}
         <CleoMascot message={MASCOT_MESSAGES[mascotIdx]} />
 
@@ -560,6 +579,20 @@ export default function KidsPage() {
             </div>
           </motion.section>
         )}
+
+        {/* Storybook CTA after result */}
+        <Link
+          href="/kids/storybook"
+          className="block rounded-3xl bg-gradient-to-r from-amber-50 via-orange-50 to-pink-50 border-2 border-orange-200 p-6 hover:shadow-lg hover:scale-[1.01] transition-all group text-center"
+        >
+          <p className="text-3xl mb-2">📖</p>
+          <p className="font-kids text-lg font-extrabold text-slate-800">
+            Want to help your child feel brave?
+          </p>
+          <p className="font-kids text-sm text-slate-500 mt-1">
+            Create their personalized storybook where they&apos;re the hero →
+          </p>
+        </Link>
 
         {/* Bottom actions */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 pb-8">
