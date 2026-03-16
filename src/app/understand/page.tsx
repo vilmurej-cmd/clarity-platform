@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, ChevronDown, ChevronUp, Printer, RotateCcw } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronUp, Printer, RotateCcw, Lock, Sparkles } from 'lucide-react';
 import DisclaimerBanner from '@/components/DisclaimerBanner';
 import LoadingBreather from '@/components/LoadingBreather';
 import ReportTabs from '@/components/ReportTabs';
@@ -40,6 +40,7 @@ function mapApiToReportData(raw: any): ReportData {
     effectivenessLabel: t.effectiveness,
     whatItInvolves: t.involves ?? t.whatItInvolves ?? '',
     timeline: t.timeline,
+    costRange: t.costRange,
     sideEffects: (t.sideEffects ?? []).map((se: any) => ({
       name: se.effect ?? se.name ?? '',
       severity: se.severity ?? 'mild',
@@ -47,33 +48,67 @@ function mapApiToReportData(raw: any): ReportData {
     questionsToAsk: t.questionsToAsk ?? [],
   }));
 
-  // Map questions
-  const questionMap: Record<string, string> = {
-    aboutDiagnosis: 'About Your Diagnosis',
-    aboutTreatment: 'About Treatment',
-    aboutDailyLife: 'About Daily Life',
-    aboutOutlook: 'About Your Outlook',
-    aboutSupport: 'About Support',
-  };
+  // Map questions — handle both new priority format and legacy format
+  let questions: any;
+  if (raw.questionsForDoctor) {
+    const qfd = raw.questionsForDoctor;
+    // Check if it's the new priority format
+    if (qfd.askFirst || qfd.alsoAsk || qfd.ifTimeAllows) {
+      questions = {
+        askFirst: qfd.askFirst ?? [],
+        alsoAsk: qfd.alsoAsk ?? [],
+        ifTimeAllows: qfd.ifTimeAllows ?? [],
+      };
+    } else {
+      // Legacy category format
+      const questionMap: Record<string, string> = {
+        aboutDiagnosis: 'About Your Diagnosis',
+        aboutTreatment: 'About Treatment',
+        aboutDailyLife: 'About Daily Life',
+        aboutOutlook: 'About Your Outlook',
+        aboutSupport: 'About Support',
+      };
+      questions = Object.entries(qfd).map(
+        ([key, qs]: [string, any]) => ({
+          category: questionMap[key] ?? key,
+          questions: (qs ?? []).map((q: any) => ({
+            question: q.question,
+            whyItMatters: q.whyItMatters,
+          })),
+        })
+      );
+    }
+  } else {
+    questions = [];
+  }
 
-  const questions = Object.entries(raw.questionsForDoctor ?? {}).map(
-    ([key, qs]: [string, any]) => ({
-      category: questionMap[key] ?? key,
-      questions: (qs ?? []).map((q: any) => ({
-        question: q.question,
-        whyItMatters: q.whyItMatters,
-      })),
-    })
-  );
+  // Map support — handle both formats
+  let support: any;
+  if (raw.supportResources) {
+    support = {
+      ...raw.supportResources,
+      clinicalTrials: {
+        overview: 'Clinical trials test new treatments before they become widely available.',
+        searchTip: `Search ClinicalTrials.gov for "${raw.clinicalTrialSearchTerm ?? raw.conditionName ?? 'your condition'}" to find studies near you.`,
+      },
+    };
+  } else {
+    const organizations = (raw.supportOrganizations ?? []).map((org: any) => ({
+      name: org.name,
+      description: org.description,
+      url: org.website ?? org.url,
+    }));
+    support = {
+      clinicalTrials: {
+        overview: 'Clinical trials test new treatments before they become widely available.',
+        searchTip: `Search ClinicalTrials.gov for "${raw.clinicalTrialSearchTerm ?? raw.conditionName ?? 'your condition'}" to find studies near you.`,
+      },
+      organizations,
+      financialResources: [],
+    };
+  }
 
-  // Map support organizations
-  const organizations = (raw.supportOrganizations ?? []).map((org: any) => ({
-    name: org.name,
-    description: org.description,
-    url: org.website ?? org.url,
-  }));
-
-  // Map living-with tips
+  // Map living-with tips — handle both formats
   const livingWith = raw.livingWith ?? {};
   const dailyTips = (livingWith.dailyTips ?? []).map((tip: any) =>
     typeof tip === 'string' ? { title: '', description: tip } : tip
@@ -91,21 +126,21 @@ function mapApiToReportData(raw: any): ReportData {
       causes: raw.causes ?? '',
       keyTerms: raw.keyTerms ?? [],
     },
+    severity: raw.severity,
+    affectedBodyRegions: raw.affectedBodyRegions,
+    conditionName: raw.conditionName,
+    mechanismSteps: raw.mechanismSteps,
     treatments,
     questions,
-    support: {
-      clinicalTrials: {
-        overview:
-          'Clinical trials test new treatments before they become widely available. Participating in a trial can give you access to cutting-edge therapies.',
-        searchTip: `Search ClinicalTrials.gov for "${raw.clinicalTrialSearchTerm ?? raw.conditionName ?? 'your condition'}" to find studies near you.`,
-      },
-      organizations,
-      financialResources: [],
-    },
+    support,
     livingWithIt: {
-      dailyTips,
+      dailyTips: dailyTips.length > 0 ? dailyTips : undefined,
+      dailyChecklist: livingWith.dailyChecklist,
+      foodGuide: livingWith.foodGuide,
+      exercises: livingWith.exercises,
       watchFor,
       emotionalHealth: livingWith.emotionalHealth ?? '',
+      copingStrategies: livingWith.copingStrategies,
       forCaregivers: livingWith.forCaregivers ?? '',
     },
   };
@@ -120,6 +155,15 @@ const placeholders = [
   'My doctor said I have early-stage breast cancer...',
   'My child was diagnosed with asthma...',
   "I've been told I have rheumatoid arthritis...",
+  'My doctor said I need a knee replacement...',
+  'I was diagnosed with stage 2 breast cancer...',
+];
+
+const examplePrompts = [
+  { text: "I was diagnosed with Type 2 Diabetes", icon: "💉" },
+  { text: "My doctor said I need a knee replacement", icon: "🦵" },
+  { text: "I have stage 2 breast cancer", icon: "🎗️" },
+  { text: "My child has been diagnosed with asthma", icon: "🫁" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -161,11 +205,12 @@ function UnderstandInner() {
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [report, setReport] = useState<ReportData | null>(null);
   const [diagnosisSummary, setDiagnosisSummary] = useState('');
+  const [conditionName, setConditionName] = useState('');
   const [error, setError] = useState('');
 
   // Rotate placeholder text
   useEffect(() => {
-    if (form.description) return; // Don't rotate if user has typed
+    if (form.description) return;
     const interval = setInterval(() => {
       setPlaceholderIdx((prev) => (prev + 1) % placeholders.length);
     }, 3000);
@@ -201,6 +246,7 @@ function UnderstandInner() {
       const mapped = mapApiToReportData(data.report);
       setReport(mapped);
       setDiagnosisSummary(data.report.diagnosisSummary ?? '');
+      setConditionName(data.report.conditionName ?? '');
       setStep('report');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
@@ -220,6 +266,7 @@ function UnderstandInner() {
     });
     setReport(null);
     setDiagnosisSummary('');
+    setConditionName('');
     setError('');
   };
 
@@ -241,6 +288,12 @@ function UnderstandInner() {
           >
             <div className="mx-auto max-w-2xl px-4 pt-12 sm:px-6 sm:pt-16">
               <DisclaimerBanner className="mb-8" />
+
+              {/* Privacy indicator */}
+              <div className="flex items-center gap-2 text-xs text-slate-400 mb-6">
+                <Lock className="h-3.5 w-3.5" />
+                <span>Nothing you share is stored. Your privacy is absolute.</span>
+              </div>
 
               <h1 className="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">
                 In your own words, what did your doctor tell you?
@@ -270,6 +323,23 @@ function UnderstandInner() {
                 />
               </div>
 
+              {/* Example prompts */}
+              <div className="mt-4">
+                <p className="text-xs text-slate-400 mb-2">Try one of these:</p>
+                <div className="flex flex-wrap gap-2">
+                  {examplePrompts.map((prompt) => (
+                    <button
+                      key={prompt.text}
+                      onClick={() => setForm(prev => ({ ...prev, description: prompt.text }))}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 transition-all"
+                    >
+                      <span>{prompt.icon}</span>
+                      {prompt.text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Expandable detail section */}
               <div className="mt-6">
                 <button
@@ -296,25 +366,11 @@ function UnderstandInner() {
                       className="overflow-hidden"
                     >
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                        {/* Age Range */}
                         <div>
-                          <label
-                            htmlFor="ageRange"
-                            className="block text-sm font-medium text-slate-700 mb-1"
-                          >
-                            Age range
-                          </label>
-                          <select
-                            id="ageRange"
-                            value={form.ageRange}
-                            onChange={(e) =>
-                              setForm((prev) => ({
-                                ...prev,
-                                ageRange: e.target.value,
-                              }))
-                            }
-                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-blue-100"
-                          >
+                          <label htmlFor="ageRange" className="block text-sm font-medium text-slate-700 mb-1">Age range</label>
+                          <select id="ageRange" value={form.ageRange}
+                            onChange={(e) => setForm((prev) => ({ ...prev, ageRange: e.target.value }))}
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-blue-100">
                             <option value="">Select...</option>
                             <option value="Under 18">Under 18</option>
                             <option value="18-30">18-30</option>
@@ -324,26 +380,11 @@ function UnderstandInner() {
                             <option value="75+">75+</option>
                           </select>
                         </div>
-
-                        {/* When diagnosed */}
                         <div>
-                          <label
-                            htmlFor="diagnosedWhen"
-                            className="block text-sm font-medium text-slate-700 mb-1"
-                          >
-                            When were you diagnosed?
-                          </label>
-                          <select
-                            id="diagnosedWhen"
-                            value={form.diagnosedWhen}
-                            onChange={(e) =>
-                              setForm((prev) => ({
-                                ...prev,
-                                diagnosedWhen: e.target.value,
-                              }))
-                            }
-                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-blue-100"
-                          >
+                          <label htmlFor="diagnosedWhen" className="block text-sm font-medium text-slate-700 mb-1">When were you diagnosed?</label>
+                          <select id="diagnosedWhen" value={form.diagnosedWhen}
+                            onChange={(e) => setForm((prev) => ({ ...prev, diagnosedWhen: e.target.value }))}
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-blue-100">
                             <option value="">Select...</option>
                             <option value="Just now">Just now</option>
                             <option value="Days ago">Days ago</option>
@@ -352,51 +393,19 @@ function UnderstandInner() {
                             <option value="Years ago">Years ago</option>
                           </select>
                         </div>
-
-                        {/* Current treatments */}
                         <div className="sm:col-span-2">
-                          <label
-                            htmlFor="currentTreatments"
-                            className="block text-sm font-medium text-slate-700 mb-1"
-                          >
-                            Current treatments (if any)
-                          </label>
-                          <input
-                            id="currentTreatments"
-                            type="text"
-                            value={form.currentTreatments}
-                            onChange={(e) =>
-                              setForm((prev) => ({
-                                ...prev,
-                                currentTreatments: e.target.value,
-                              }))
-                            }
+                          <label htmlFor="currentTreatments" className="block text-sm font-medium text-slate-700 mb-1">Current treatments (if any)</label>
+                          <input id="currentTreatments" type="text" value={form.currentTreatments}
+                            onChange={(e) => setForm((prev) => ({ ...prev, currentTreatments: e.target.value }))}
                             placeholder="e.g., Metformin, physical therapy..."
-                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-blue-100"
-                          />
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-blue-100" />
                         </div>
-
-                        {/* Other conditions */}
                         <div className="sm:col-span-2">
-                          <label
-                            htmlFor="otherConditions"
-                            className="block text-sm font-medium text-slate-700 mb-1"
-                          >
-                            Other conditions
-                          </label>
-                          <input
-                            id="otherConditions"
-                            type="text"
-                            value={form.otherConditions}
-                            onChange={(e) =>
-                              setForm((prev) => ({
-                                ...prev,
-                                otherConditions: e.target.value,
-                              }))
-                            }
+                          <label htmlFor="otherConditions" className="block text-sm font-medium text-slate-700 mb-1">Other conditions</label>
+                          <input id="otherConditions" type="text" value={form.otherConditions}
+                            onChange={(e) => setForm((prev) => ({ ...prev, otherConditions: e.target.value }))}
                             placeholder="e.g., high blood pressure, anxiety..."
-                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-blue-100"
-                          />
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-blue-100" />
                         </div>
                       </div>
                     </motion.div>
@@ -404,30 +413,31 @@ function UnderstandInner() {
                 </AnimatePresence>
               </div>
 
-              {/* Submit button */}
+              {/* Submit button with pulse animation */}
               <div className="mt-8">
                 <button
                   type="button"
                   onClick={handleSubmit}
                   disabled={!isValid}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#3B82F6] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-200 transition-all duration-200 hover:bg-[#2563EB] hover:shadow-xl hover:shadow-blue-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B82F6] sm:w-auto"
+                  className={`inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#3B82F6] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-200 transition-all duration-200 hover:bg-[#2563EB] hover:shadow-xl hover:shadow-blue-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B82F6] sm:w-auto ${
+                    isValid ? 'animate-blue-pulse' : ''
+                  }`}
                 >
+                  <Sparkles className="h-5 w-5" aria-hidden="true" />
                   Help Me Understand
                   <ArrowRight className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
 
-              {/* Warm encouragement */}
               <p className="mt-6 text-center text-sm text-slate-400 sm:text-left">
-                There are no wrong answers. Every journey starts with
-                understanding.
+                There are no wrong answers. Every journey starts with understanding.
               </p>
             </div>
           </motion.div>
         )}
 
         {/* ============================================================ */}
-        {/*  STEP 2: Loading                                              */}
+        {/*  STEP 2: Loading with wave animation                          */}
         {/* ============================================================ */}
         {step === 'loading' && (
           <motion.div
@@ -437,8 +447,12 @@ function UnderstandInner() {
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
           >
-            <div className="mx-auto max-w-2xl px-4 pt-12 sm:px-6 sm:pt-16">
-              {/* Patient's description card */}
+            {/* Wave transition */}
+            <div className="relative overflow-hidden h-1 bg-blue-50 mb-4">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-wave-flow" />
+            </div>
+
+            <div className="mx-auto max-w-2xl px-4 pt-8 sm:px-6 sm:pt-12">
               <div className="mb-8 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
                   You told us
@@ -452,6 +466,7 @@ function UnderstandInner() {
                 messages={[
                   'Reading the latest research...',
                   'Translating medical terminology...',
+                  'Mapping affected body regions...',
                   'Finding treatment options...',
                   'Preparing questions for your doctor...',
                   'Building your personalized report...',
@@ -479,6 +494,9 @@ function UnderstandInner() {
                   <h1 className="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">
                     Your Clarity Report
                   </h1>
+                  {conditionName && (
+                    <p className="mt-1 text-sm text-blue-600 font-medium">{conditionName}</p>
+                  )}
                   <p className="mt-1 text-sm text-slate-400">
                     Generated{' '}
                     {new Date().toLocaleDateString('en-US', {
@@ -488,20 +506,22 @@ function UnderstandInner() {
                     })}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="no-print inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#3B82F6]"
-                  aria-label="Print report"
-                >
-                  <Printer className="h-4 w-4" aria-hidden="true" />
-                  Print
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="no-print inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                    aria-label="Print report"
+                  >
+                    <Printer className="h-4 w-4" aria-hidden="true" />
+                    Print
+                  </button>
+                </div>
               </div>
 
               {/* Diagnosis summary card */}
               {diagnosisSummary && (
-                <div className="mb-10 rounded-2xl border border-blue-100 bg-blue-50 p-6">
+                <div className="mb-10 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
                   <h2 className="text-sm font-semibold uppercase tracking-wider text-blue-600 mb-2">
                     Your Diagnosis, Simply Put
                   </h2>
@@ -522,16 +542,21 @@ function UnderstandInner() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="no-print inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#3B82F6]"
+                  className="no-print inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                 >
                   <RotateCcw className="h-4 w-4" aria-hidden="true" />
                   Start a New Report
                 </button>
               </div>
 
-              <DisclaimerBanner className="mt-10" />
+              {/* Privacy footer */}
+              <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
+                <Lock className="h-3.5 w-3.5" />
+                <span>Nothing you shared was stored. Your privacy is absolute.</span>
+              </div>
 
-              {/* Printable questions (hidden on screen, visible in print) */}
+              <DisclaimerBanner className="mt-6" />
+
               <PrintableQuestions
                 questions={[]}
                 conditionName={form.description}

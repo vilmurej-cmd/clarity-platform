@@ -55,6 +55,11 @@ Respond with ONLY valid JSON (no markdown, no backticks):
   "conditionName": "Standard name of the condition",
   "prevalence": "How common, normalizing statement",
   "causes": "Brief, non-scary explanation of causes",
+  "severity": "manageable|moderate|serious|critical",
+  "affectedBodyRegions": ["array of: brain, lungs, heart, liver, stomach, pancreas, kidneys, intestines, bones, skin, blood, thyroid, eyes, spine, muscles"],
+  "mechanismSteps": [
+    { "step": 1, "title": "Step title", "description": "Plain language", "icon": "emoji" }
+  ],
   "keyTerms": [
     { "term": "medical term", "definition": "plain language", "whyItMatters": "1 sentence" }
   ],
@@ -67,6 +72,7 @@ Respond with ONLY valid JSON (no markdown, no backticks):
       "effectivenessScore": 7,
       "involves": "What patient actually does",
       "timeline": "How long treatment typically takes",
+      "costRange": "$|$$|$$$|$$$$",
       "sideEffects": [
         { "effect": "side effect name", "severity": "mild|moderate|serious", "frequency": "common|uncommon|rare" }
       ],
@@ -74,20 +80,33 @@ Respond with ONLY valid JSON (no markdown, no backticks):
     }
   ],
   "questionsForDoctor": {
-    "aboutDiagnosis": [{ "question": "...", "whyItMatters": "..." }],
-    "aboutTreatment": [{ "question": "...", "whyItMatters": "..." }],
-    "aboutDailyLife": [{ "question": "...", "whyItMatters": "..." }],
-    "aboutOutlook": [{ "question": "...", "whyItMatters": "..." }],
-    "aboutSupport": [{ "question": "...", "whyItMatters": "..." }]
+    "askFirst": [{ "question": "...", "whyItMatters": "..." }],
+    "alsoAsk": [{ "question": "...", "whyItMatters": "..." }],
+    "ifTimeAllows": [{ "question": "...", "whyItMatters": "..." }]
   },
   "clinicalTrialSearchTerm": "suggested ClinicalTrials.gov search",
-  "supportOrganizations": [
-    { "name": "Organization name", "description": "What they offer", "website": "URL" }
-  ],
+  "supportResources": {
+    "medical": [{ "name": "...", "description": "...", "url": "real URL" }],
+    "medication": [{ "name": "...", "description": "...", "url": "real URL" }],
+    "supportGroups": [{ "name": "...", "description": "...", "url": "real URL" }],
+    "financial": [{ "name": "...", "description": "..." }],
+    "mentalHealth": [{ "name": "...", "description": "...", "url": "real URL" }],
+    "nutrition": [{ "name": "...", "description": "...", "url": "real URL" }],
+    "exercise": [{ "name": "...", "description": "..." }]
+  },
   "livingWith": {
-    "dailyTips": ["actionable tip 1", "actionable tip 2"],
-    "watchFor": ["sign to call doctor"],
+    "dailyChecklist": ["Specific daily task for this condition"],
+    "foodGuide": {
+      "eat": [{ "name": "food", "icon": "emoji", "reason": "why" }],
+      "moderate": [{ "name": "food", "icon": "emoji", "reason": "why" }],
+      "limit": [{ "name": "food", "icon": "emoji", "reason": "why" }]
+    },
+    "exercises": [
+      { "name": "exercise", "icon": "emoji", "duration": "...", "frequency": "...", "difficulty": "easy|moderate|challenging", "safetyNote": "..." }
+    ],
     "emotionalHealth": "Validating, compassionate paragraph",
+    "copingStrategies": ["strategy 1", "strategy 2"],
+    "watchFor": [{ "sign": "...", "action": "..." }],
     "forCaregivers": "Guidance paragraph for family/caregivers"
   },
   "kidsVersion": {
@@ -98,7 +117,7 @@ Respond with ONLY valid JSON (no markdown, no backticks):
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o",
-      max_tokens: 4000,
+      max_tokens: 4500,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },

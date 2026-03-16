@@ -8,7 +8,8 @@ import { Menu, X } from 'lucide-react';
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/how-it-works', label: 'How It Works' },
-  { href: '/about', label: 'About' },
+  { href: '/medications', label: 'Medications' },
+  { href: '/prepare', label: 'Prepare' },
   { href: '/resources', label: 'Resources' },
   { href: '/kids', label: 'CLARITY Kids' },
 ];
@@ -24,12 +25,10 @@ export default function Navigation() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Close on Escape
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') setMobileOpen(false);
   }, []);
@@ -110,7 +109,7 @@ export default function Navigation() {
       <div
         id="mobile-nav"
         className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-          mobileOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          mobileOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
         }`}
         aria-hidden={!mobileOpen}
       >
